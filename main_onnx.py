@@ -1,20 +1,34 @@
-import onnxruntime as ort
-import numpy as np
 import gc
-import numpy as np
-import cv2
+import platform
 import time
-import win32api
-import win32con
+
+import cv2
+import numpy as np
+import onnxruntime as ort
 import pandas as pd
-from utils.general import (cv2, non_max_suppression, xyxy2xywh)
 import torch
+
+from utils.general import cv2, non_max_suppression, xyxy2xywh
+from utils.platform_controls import activation_enabled, move_mouse, quit_requested
 
 # Could be do with
 # from config import *
 # But we are writing it out for clarity for new devs
 from config import aaMovementAmp, useMask, maskHeight, maskWidth, aaQuitKey, confidence, headshot_mode, cpsDisplay, visuals, onnxChoice, centerOfScreen
 import gameSelection
+
+
+def _select_provider(choice: int) -> str:
+    """Return a provider name compatible with the current platform."""
+
+    if choice == 1:
+        return "CPUExecutionProvider"
+    if choice == 2:
+        # DirectML is Windows-only; fall back to CPU elsewhere
+        return "DmlExecutionProvider" if platform.system() == "Windows" else "CPUExecutionProvider"
+    if choice == 3:
+        return "CUDAExecutionProvider"
+    raise ValueError("Invalid onnxChoice. Please use 1 (CPU), 2 (AMD), or 3 (NVIDIA).")
 
 def main():
     # External Function for running the game selection menu (gameSelection.py)
@@ -25,26 +39,35 @@ def main():
     sTime = time.time()
 
     # Choosing the correct ONNX Provider based on config.py
-    onnxProvider = ""
-    if onnxChoice == 1:
+    onnxProvider = _select_provider(onnxChoice)
+    use_cuda = onnxProvider == "CUDAExecutionProvider"
+    if use_cuda:
+        try:
+            import cupy as cp
+        except ImportError:
+            print("Cupy is required for CUDAExecutionProvider. Install cupy-cuda11x for your CUDA version.")
+            onnxProvider = "CPUExecutionProvider"
+            use_cuda = False
+    if use_cuda and not torch.cuda.is_available():
+        print("CUDAExecutionProvider requested but CUDA not available; falling back to CPUExecutionProvider.")
         onnxProvider = "CPUExecutionProvider"
-    elif onnxChoice == 2:
-        onnxProvider = "DmlExecutionProvider"
-    elif onnxChoice == 3:
-        import cupy as cp
-        onnxProvider = "CUDAExecutionProvider"
+        use_cuda = False
+    if onnxChoice == 2 and onnxProvider == "CPUExecutionProvider" and platform.system() != "Windows":
+        print("DirectML is only available on Windows; falling back to CPUExecutionProvider.")
 
     so = ort.SessionOptions()
     so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    ort_sess = ort.InferenceSession('yolov5s320Half.onnx', sess_options=so, providers=[
-                                    onnxProvider])
+    provider_priority = [onnxProvider]
+    if onnxProvider != "CPUExecutionProvider":
+        provider_priority.append("CPUExecutionProvider")
+    ort_sess = ort.InferenceSession('yolov5s320Half.onnx', sess_options=so, providers=provider_priority)
 
     # Used for colors drawn on bounding boxes
     COLORS = np.random.uniform(0, 255, size=(1500, 3))
 
     # Main loop Quit if Q is pressed
     last_mid_coord = None
-    while win32api.GetAsyncKeyState(ord(aaQuitKey)) == 0:
+    while not quit_requested(aaQuitKey):
 
         # Getting Frame
         npImg = np.array(camera.get_latest_frame())
@@ -60,7 +83,7 @@ def main():
                 raise Exception('ERROR: Invalid maskSide! Please use "left" or "right"')
 
         # If Nvidia, do this
-        if onnxChoice == 3:
+        if use_cuda:
             # Normalizing Data
             im = torch.from_numpy(npImg).to('cuda')
             if im.shape[2] == 4:
@@ -84,7 +107,7 @@ def main():
             im = np.moveaxis(im, 3, 1)
 
         # If Nvidia, do this
-        if onnxChoice == 3:
+        if use_cuda:
             outputs = ort_sess.run(None, {'images': cp.asnumpy(im)})
         # If AMD or CPU, do this
         else:
@@ -144,9 +167,11 @@ def main():
             mouseMove = [xMid - cWidth, (yMid - headshot_offset) - cHeight]
 
             # Moving the mouse
-            if win32api.GetKeyState(0x14):
-                win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(
-                    mouseMove[0] * aaMovementAmp), int(mouseMove[1] * aaMovementAmp), 0, 0)
+            if activation_enabled():
+                move_mouse(
+                    mouseMove[0] * aaMovementAmp,
+                    mouseMove[1] * aaMovementAmp,
+                )
             last_mid_coord = [xMid, yMid]
 
         else:

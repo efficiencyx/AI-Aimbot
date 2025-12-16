@@ -37,6 +37,23 @@ Intended for educational use 🎓, our aim is to highlight the vulnerability of 
 - And one of the following:
   - Nvidia CUDA Toolkit 11.8 [DOWNLOAD HERE](https://developer.nvidia.com/cuda-11-8-0-download-archive)
 
+### Linux Support 🐧
+- Install system dependencies for screenshot capture (X11-based desktops work best).
+- Use the Linux-specific dependency list to avoid Windows-only packages:
+  ```
+  python3 -m pip install -r requirements-linux.txt
+  ```
+- The aimbot now supports Linux input and screenshots via `pynput` + `mss`. Caps Lock is still the toggle key.
+- For the ONNX version on Linux, install the CPU runtime with the requirements file above or add GPU support manually:
+  ```
+  # CPU runtime (included in requirements-linux.txt)
+  python3 -m pip install onnxruntime
+
+  # Optional CUDA acceleration
+  python3 -m pip install onnxruntime-gpu cupy-cuda11x
+  ```
+  Then run `python3 main_onnx.py` with `onnxChoice` set to CPU (1) or NVIDIA CUDA (3). DirectML (choice 2) is Windows only.
+
 ## 🚀 Pre-setup Steps
 1. Download and Unzip the AI Aimbot and stash the folder somewhere handy 🗂️.
 2. Ensure you've got Python installed (like a pet python 🐍) – grab version 3.11 [HERE](https://www.python.org/downloads/release/python-3116/).

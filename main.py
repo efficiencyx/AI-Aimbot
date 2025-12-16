@@ -2,8 +2,6 @@ import torch
 import numpy as np
 import cv2
 import time
-import win32api
-import win32con
 import pandas as pd
 import gc
 from utils.general import (cv2, non_max_suppression, xyxy2xywh)
@@ -13,6 +11,7 @@ from utils.general import (cv2, non_max_suppression, xyxy2xywh)
 # But we are writing it out for clarity for new devs
 from config import aaMovementAmp, useMask, maskWidth, maskHeight, aaQuitKey, screenShotHeight, confidence, headshot_mode, cpsDisplay, visuals, centerOfScreen
 import gameSelection
+from utils.platform_controls import activation_enabled, move_mouse, quit_requested
 
 def main():
     # External Function for running the game selection menu (gameSelection.py)
@@ -36,7 +35,7 @@ def main():
     # Main loop Quit if Q is pressed
     last_mid_coord = None
     with torch.no_grad():
-        while win32api.GetAsyncKeyState(ord(aaQuitKey)) == 0:
+        while not quit_requested(aaQuitKey):
 
             # Getting Frame
             npImg = np.array(camera.get_latest_frame())
@@ -121,9 +120,11 @@ def main():
                 mouseMove = [xMid - cWidth, (yMid - headshot_offset) - cHeight]
 
                 # Moving the mouse
-                if win32api.GetKeyState(0x14):
-                    win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(
-                        mouseMove[0] * aaMovementAmp), int(mouseMove[1] * aaMovementAmp), 0, 0)
+                if activation_enabled():
+                    move_mouse(
+                        mouseMove[0] * aaMovementAmp,
+                        mouseMove[1] * aaMovementAmp,
+                    )
                 last_mid_coord = [xMid, yMid]
 
             else:
