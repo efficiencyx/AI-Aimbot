@@ -37,6 +37,14 @@ Intended for educational use 🎓, our aim is to highlight the vulnerability of 
 - And one of the following:
   - Nvidia CUDA Toolkit 11.8 [DOWNLOAD HERE](https://developer.nvidia.com/cuda-11-8-0-download-archive)
 
+### Linux Support 🐧
+- Install system dependencies for screenshot capture (X11-based desktops work best).
+- Use the Linux-specific dependency list to avoid Windows-only packages:
+  ```
+  python3 -m pip install -r requirements-linux.txt
+  ```
+- The aimbot now supports Linux input and screenshots via `pynput` + `mss`. Caps Lock is still the toggle key.
+
 ## 🚀 Pre-setup Steps
 1. Download and Unzip the AI Aimbot and stash the folder somewhere handy 🗂️.
 2. Ensure you've got Python installed (like a pet python 🐍) – grab version 3.11 [HERE](https://www.python.org/downloads/release/python-3116/).
