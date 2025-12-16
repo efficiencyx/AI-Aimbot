@@ -44,6 +44,15 @@ Intended for educational use 🎓, our aim is to highlight the vulnerability of 
   python3 -m pip install -r requirements-linux.txt
   ```
 - The aimbot now supports Linux input and screenshots via `pynput` + `mss`. Caps Lock is still the toggle key.
+- For the ONNX version on Linux, install the CPU runtime with the requirements file above or add GPU support manually:
+  ```
+  # CPU runtime (included in requirements-linux.txt)
+  python3 -m pip install onnxruntime
+
+  # Optional CUDA acceleration
+  python3 -m pip install onnxruntime-gpu cupy-cuda11x
+  ```
+  Then run `python3 main_onnx.py` with `onnxChoice` set to CPU (1) or NVIDIA CUDA (3). DirectML (choice 2) is Windows only.
 
 ## 🚀 Pre-setup Steps
 1. Download and Unzip the AI Aimbot and stash the folder somewhere handy 🗂️.
